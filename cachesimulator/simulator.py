@@ -106,9 +106,13 @@ class Simulator(object):
             word_addrs, num_addr_bits,
             num_offset_bits, num_index_bits, num_tag_bits)
 
+        self.refs = refs
+
         cache = Cache(
             num_sets=num_sets,
             num_index_bits=num_index_bits)
+
+        self.cache = cache
 
         cache.read_refs(
             num_blocks_per_set, num_words_per_block,
@@ -116,11 +120,63 @@ class Simulator(object):
 
         # The character-width of all displayed tables
         # Attempt to fit table to terminal width, otherwise use default of 80
-        table_width = max((shutil.get_terminal_size(
-            (DEFAULT_TABLE_WIDTH, None)).columns, DEFAULT_TABLE_WIDTH))
+        #table_width = max((shutil.get_terminal_size(
+        #    (DEFAULT_TABLE_WIDTH, None)).columns, DEFAULT_TABLE_WIDTH))
 
         #print()
         #self.display_addr_refs(refs, table_width)
         #print()
         #self.display_cache(cache, table_width)
         #print()
+
+
+    # Run the cache simulation and only return the hit-miss-array
+    def run_simulation_get_hit_miss_array(self, num_blocks_per_set, num_words_per_block,
+                       cache_size, replacement_policy, num_addr_bits,
+                       word_addrs, batch_size = 10000):
+        '''
+        Usage:
+            Only return the hit miss array such that the simulation can be more efficient
+
+        Args:
+            batch_size: (int) the # of cache reference to feed at each time, for memory saving
+        '''
+
+        num_blocks = cache_size // num_words_per_block
+        num_sets = num_blocks // num_blocks_per_set
+
+        # Ensure that the number of bits used to represent each address is
+        # always large enough to represent the largest address
+        num_addr_bits = max(num_addr_bits, int(math.log2(max(word_addrs))) + 1)
+
+        num_offset_bits = int(math.log2(num_words_per_block))
+        num_index_bits = int(math.log2(num_sets))
+        num_tag_bits = num_addr_bits - num_index_bits - num_offset_bits
+
+        cache = Cache(
+            num_sets=num_sets,
+            num_index_bits=num_index_bits)
+
+        miss_status_array = []
+        num_batch = len(word_addrs) // batch_size
+
+        for i in range(num_batch):
+            if i == num_batch - 1:
+                sliced_word_addrs = word_addrs[i * batch_size:] # Last batch
+            else:
+                sliced_word_addrs = word_addrs[i * batch_size: (i + 1) * batch_size]
+        
+            refs = self.get_addr_refs(
+                sliced_word_addrs, num_addr_bits,
+                num_offset_bits, num_index_bits, num_tag_bits)
+
+            cache.read_refs(
+                num_blocks_per_set, num_words_per_block,
+                replacement_policy, refs)
+
+            for ref in refs:
+                miss_status_array.append(str(ref.cache_status) == 'miss')
+
+            del refs
+
+        return miss_status_array
