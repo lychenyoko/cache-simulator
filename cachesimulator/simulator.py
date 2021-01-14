@@ -119,8 +119,8 @@ class Simulator(object):
         table_width = max((shutil.get_terminal_size(
             (DEFAULT_TABLE_WIDTH, None)).columns, DEFAULT_TABLE_WIDTH))
 
-        print()
-        self.display_addr_refs(refs, table_width)
-        print()
-        self.display_cache(cache, table_width)
-        print()
+        #print()
+        #self.display_addr_refs(refs, table_width)
+        #print()
+        #self.display_cache(cache, table_width)
+        #print()
